@@ -40,7 +40,7 @@ main() {
 }
 
 launch_post_install_script() {
-  local url="https://gist.githubusercontent.com/AlexpFr/sys_install/proxmox/proxmox-post-install.sh"
+  local url="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh"
   bash -c "$(curl -fsSL "$url")"
 }
 
@@ -75,7 +75,7 @@ add_sudoer_user() {
 # Optional functions below
 # ----------------------------
 install_custom_bash_prompt() {
-  local url="https://raw.githubusercontent.com/AlexpFr/config_files/custom_prompt.sh"
+  local url="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/config_files/custom_prompt.sh"
   local profile_d_file=/etc/profile.d/custom_prompt.sh
   echo "Installing $profile_d_file from $url"
   curl -fsSL "$url" -o "$profile_d_file"
