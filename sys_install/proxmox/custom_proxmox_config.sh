@@ -19,15 +19,15 @@ main() {
   local username="${1:-}"
   local encrypted_password="${2:-}"
   # If local file exists, use it, else use remote URL
-  if [[ -f "/root/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh" ]]; then
-    proxmox_post_install_scipt="/root/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh"
+  if [[ -f "/root/dotfiles/sys_install/proxmox/proxmox-post-install.sh" ]]; then
+    proxmox_post_install_scipt="/root/dotfiles/sys_install/proxmox/proxmox-post-install.sh"
   else
     proxmox_post_install_scipt="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh"
   fi
 
   # custom_bash_prompt_file=/root/dotfiles/main/config_files/custom_prompt.sh or https://raw.githubusercontent.com/AlexpFr/dotfiles/main/config_files/custom_prompt.sh
-  if [[ -f "/root/dotfiles/main/config_files/custom_prompt.sh" ]]; then
-    custom_bash_prompt_file="/root/dotfiles/main/config_files/custom_prompt.sh"
+  if [[ -f "/root/dotfiles/config_files/custom_prompt.sh" ]]; then
+    custom_bash_prompt_file="/root/dotfiles/config_files/custom_prompt.sh"
   else
     custom_bash_prompt_file="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/config_files/custom_prompt.sh"
   fi

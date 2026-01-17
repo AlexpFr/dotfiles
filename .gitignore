@@ -1,0 +1,219 @@
+# -----------------------------
+# Fichiers et dossiers secrets
+# -----------------------------
+
+# Fichiers d'environnement (variables sensibles)
+.env
+.env.local
+.env.*.local
+.env.example
+.env.test
+.env.stage
+.env.production
+.env.dev
+
+# Fichiers de configuration sensibles
+config.json
+secrets.json
+private.key
+*.key
+*.pem
+*.p12
+*.cer
+*.crt
+*.der
+*.jks
+*.keystore
+
+# Fichiers secrets nommés explicitement
+secret.txt
+secrets.txt
+keys.txt
+passwords.txt
+*.secret
+
+# Fichiers de config de base de données personnels
+database.local.yml
+database.local.json
+appsettings.local.json
+
+# -----------------------------
+# Fichiers de build et artefacts
+# -----------------------------
+
+# Artefacts de compilation
+/dist/
+/out/
+/build/
+/target/
+/compiled/
+/bundle/
+/webpack/
+
+# Fichiers de build spécifiques
+*.min.js
+*.min.css
+*.min.js.map
+*.min.css.map
+bundle.js
+bundle.css
+
+# -----------------------------
+# Dépendances et modules
+# -----------------------------
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.coverage.*
+.tox/
+.venv/
+venv/
+env/
+ENV/
+
+# PHP
+/vendor/
+/composer.lock
+/.php_cs.cache
+
+# Ruby
+bundle/
+vendor/
+Gemfile.lock
+.ruby-version
+
+# Java
+/target/
+!important file
+
+# .NET
+/bin/
+/obj/
+/packages/
+/*.suo
+/*.user
+/*.userosscache
+/*.sln.docstates
+
+# -----------------------------
+# Fichiers système et OS
+# -----------------------------
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+.Icon
+._*
+.Spotlight-V100
+.Trashes
+*.DS_Store?
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+[DriveLetter] Desktop.ini
+
+# Linux
+.*.swp
+.*.swo
+*~
+
+# -----------------------------
+# Éditeurs et IDE
+# -----------------------------
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains (IntelliJ, PyCharm, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+*.idea
+*.ipr
+
+# Eclipse
+.project
+.settings/
+.metadata
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+
+# -----------------------------
+# Journaux, temporaires et cache
+# -----------------------------
+
+# Logs
+*.log
+*.log.*
+*.out
+*.err
+*.trace
+
+# Fichiers temporaires
+*.tmp
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp.*
+*.temp
+
+# Fichiers de point de sauvegarde
+*.autosave
+*.autosave.*
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# -----------------------------
+# Fichiers de base de données
+# -----------------------------
+
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql
+*.sql.gz
+*.sql.bz2
+*.sql.xz
+*.sql.zip
+
+# Fichiers de serveur
+logs/
+tmp/
+temp/
+cache/
+.sessions/
+
