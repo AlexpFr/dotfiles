@@ -18,42 +18,86 @@ set -euo pipefail
 main() {
   local username="${1:-}"
   local encrypted_password="${2:-}"
+  # If local file exists, use it, else use remote URL
+  if [[ -f "/root/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh" ]]; then
+    proxmox_post_install_scipt="/root/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh"
+  else
+    proxmox_post_install_scipt="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh"
+  fi
+
+  # custom_bash_prompt_file=/root/dotfiles/main/config_files/custom_prompt.sh or https://raw.githubusercontent.com/AlexpFr/dotfiles/main/config_files/custom_prompt.sh
+  if [[ -f "/root/dotfiles/main/config_files/custom_prompt.sh" ]]; then
+    custom_bash_prompt_file="/root/dotfiles/main/config_files/custom_prompt.sh"
+  else
+    custom_bash_prompt_file="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/config_files/custom_prompt.sh"
+  fi
 
   export DEBIAN_FRONTEND=noninteractive
 
-  install_custom_bash_prompt
+  install_custom_bash_prompt "$custom_bash_prompt_file"
+  disable_motd_messages "root"
   # create_root_lvm_snapshot
-  launch_post_install_script
+  launch_post_install_script "$proxmox_post_install_scipt"
   install_additional_packages
   add_sudoer_user "$username" "$encrypted_password"
-  # purge_old_kernel
+  nopassword_sudoers_entry "$username"
+  disable_motd_messages "$username"
+  purge_old_kernel
   # install_realtek_r8152_dkms
   # pin_interface "__CUSTOM_INTERFACE__" "__CUSTOM_TARGET__"
   # create_custom_data_lv
   # mount_new_custom_data_lv
-  apt -y autoremove --purge || echo "apt autoremove --purge failed"
-  apt -y autoclean || echo "apt autoclean failed"
-  apt -y clean || echo "apt clean failed"
-  fstrim -av
+  clean_apt
+  sync && sleep 2 && sync && fstrim -av
   
   unset DEBIAN_FRONTEND
 }
 
+clean_apt() {
+  apt -y autoremove --purge || echo "apt autoremove --purge failed"
+  apt -y autoclean || echo "apt autoclean failed"
+  apt -y clean || echo "apt clean failed"
+  rm -rf /var/lib/apt/lists/* || echo "Removing /var/lib/apt/lists/* failed"
+}
+
+nopassword_sudoers_entry() {
+  local username=$1
+  local sudoers_file="/etc/sudoers.d/010_${username}_nopasswd"
+  echo "Creating sudoers file $sudoers_file for user $username"
+  echo "$username ALL=(ALL:ALL) NOPASSWD: ALL" > "$sudoers_file"
+  chmod 440 "$sudoers_file"
+}
+
+disable_motd_messages() {
+  local _user=$1
+  local user_homedir="/home/$_user"
+  [[ "$_user" == "root" ]] && user_homedir="/root"
+  echo "Disabling MOTD messages for user in $user_homedir"
+  # si le répertoire n'existe pas, on ne fait rien
+  [[ ! -d "$user_homedir" ]] && echo "User home directory $user_homedir does not exist, skipping." && return
+  touch "$user_homedir/.hushlogin"
+  chown "$_user":"$_user" "$user_homedir/.hushlogin"
+}
+
 launch_post_install_script() {
-  local url="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh"
-  bash -c "$(curl -fsSL "$url")"
+  local file_or_url="$1"
+  echo "Launching Proxmox post-install script from $file_or_url"
+  if [[ -f "$file_or_url" ]]; then
+    bash "$file_or_url"
+  elif [[ "$file_or_url" =~ ^https?:// ]]; then
+    bash -c "$(curl -fsSL "$file_or_url")"
+  else
+    echo "Invalid file or URL: $file_or_url"
+    return 1
+  fi
 }
 
 install_additional_packages() {
   echo "Installing additional packages"
-  apt install -y iperf3 vim btop git nvme-cli ethtool lshw smartmontools lm-sensors
+  apt install -y iperf3 vim btop git nvme-cli ethtool lshw smartmontools lm-sensors pciutils fastfetch
 }
 
 add_sudoer_user() {
-  # Usage: add_sudoer_user 'user_name' 'encrypted_password'
-  # To generate encrypted password:
-  # mkpasswd user_password'
-  # openssl passwd -6 'user_password'
   local username=$1
   local encrypted_password=$2
   if [[ -z "$username" ]] || [[ ! "$encrypted_password" =~ ^\$ ]]; then
@@ -61,12 +105,6 @@ add_sudoer_user() {
     return
   fi
   echo "Adding custom user $username with sudo privileges"
-  # # With adduser:
-  # adduser --disabled-password --gecos "" "$username"
-  # usermod -p "$encrypted_password" "$username"
-  # adduser "$username" sudo
-
-  # With useradd:
   useradd -m -s /bin/bash -G sudo "$username"
   echo "$username:$encrypted_password" | chpasswd -e
 }
@@ -75,10 +113,20 @@ add_sudoer_user() {
 # Optional functions below
 # ----------------------------
 install_custom_bash_prompt() {
-  local url="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/config_files/custom_prompt.sh"
+  local file_or_url="$1"
   local profile_d_file=/etc/profile.d/custom_prompt.sh
-  echo "Installing $profile_d_file from $url"
-  curl -fsSL "$url" -o "$profile_d_file"
+  # si le fichier est local
+  if [[ -f "$file_or_url" ]]; then
+    echo "Installing $profile_d_file from local file $file_or_url"
+    cp "$file_or_url" "$profile_d_file"
+  elif [[ "$file_or_url" =~ ^https?:// ]]; then
+    echo "Installing $profile_d_file from URL $file_or_url"
+    curl -fsSL "$file_or_url" -o "$profile_d_file"
+  else
+    echo "Invalid file or URL: $file_or_url"
+    return 1
+  fi
+
   chown root:root "$profile_d_file"
   chmod 755 "$profile_d_file"
   #shellcheck disable=SC1090
