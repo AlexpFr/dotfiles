@@ -13,6 +13,8 @@
 #     - Check external script signature (SHA256, SHA512...)
 
 set -euo pipefail
+trap 'echo "An error occurred. Exiting..."; exit 1' ERR
+
 [[ $EUID -ne 0 ]] && echo "Run as root (sudo)." && exit 1
 
 main() {
@@ -43,7 +45,6 @@ main() {
   nopassword_sudoers_entry "$username"
   disable_motd_messages "$username"
   copy_ssh_key_from_root "$username"
-  purge_old_kernel
 
   # install_realtek_r8152_dkms
   pin_interface "${PIN_IFACE[@]:-}"
@@ -54,6 +55,8 @@ main() {
   sysctl_bbr_congestion_control
   sysctl_net_config
   ifupdown_interface_config "nic1"
+
+  purge_old_kernel
 
   clean_apt
   trim_all_fs
@@ -125,7 +128,7 @@ launch_post_install_script() {
 
 install_additional_packages() {
   echo "Installing additional packages"
-  apt install -y iperf3 vim btop git nvme-cli ethtool lshw smartmontools lm-sensors pciutils fastfetch
+  apt install -y iperf3 vim btop git nvme-cli lshw lm-sensors fastfetch
 }
 
 add_sudoer_user() {
