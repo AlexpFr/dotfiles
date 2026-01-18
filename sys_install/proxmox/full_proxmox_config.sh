@@ -96,7 +96,7 @@ clean_apt() {
 
 nopassword_sudoers_entry() {
   local username=$1
-  local sudoers_file="/etc/sudoers.d/010_${username}_nopasswd"
+  local sudoers_file="/etc/sudoers.d/10_${username}"
   echo "Creating sudoers file $sudoers_file for user $username"
   echo "$username ALL=(ALL:ALL) NOPASSWD: ALL" > "$sudoers_file"
   chmod 440 "$sudoers_file"
@@ -128,7 +128,7 @@ launch_post_install_script() {
 
 install_additional_packages() {
   echo "Installing additional packages"
-  apt install -y iperf3 vim btop git nvme-cli lshw lm-sensors fastfetch
+  apt install -y sudo iperf3 vim btop git nvme-cli lshw lm-sensors fastfetch
 }
 
 add_sudoer_user() {
