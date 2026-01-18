@@ -42,15 +42,46 @@ main() {
   add_sudoer_user "$username" "$encrypted_password"
   nopassword_sudoers_entry "$username"
   disable_motd_messages "$username"
+  copy_ssh_key_from_root "$username"
   purge_old_kernel
+
   # install_realtek_r8152_dkms
-  # pin_interface "__CUSTOM_INTERFACE__" "__CUSTOM_TARGET__"
+  pin_interface "${PIN_IFACE[@]:-}"
   # create_custom_data_lv
   # mount_new_custom_data_lv
+
+  sysctl_config
+  sysctl_bbr_congestion_control
+  sysctl_net_config
+  ifupdown_interface_config "nic1"
+
   clean_apt
-  sync && sleep 2 && sync && fstrim -av
+  trim_all_fs
   
   unset DEBIAN_FRONTEND
+}
+
+trim_all_fs() {
+  echo "Trimming all mounted filesystems..."
+  sync && sleep 2 && sync && fstrim -av && sleep 2 && sync && fstrim -av
+}
+
+copy_ssh_key_from_root() {
+  local username=$1
+  local ssh_public_key_path="/root/.ssh/authorized_keys"
+  local user_homedir="/home/$username"
+
+  [[ "$username" == "root" ]] && echo "Skipping SSH key copy for root user." && return
+  [[ ! -d "$user_homedir" ]] && echo "User home directory $user_homedir does not exist, skipping." && return
+  [[ ! -f "$ssh_public_key_path" ]] && echo "SSH public key file $ssh_public_key_path does not exist, skipping." && return
+
+  echo "Copying SSH public key from root to user $username"
+  local ssh_dir="$user_homedir/.ssh"
+  local auth_keys_file="$ssh_dir/authorized_keys"
+  install -d -m 700 -o "$username" -g "$username" "$ssh_dir"
+  cp "$ssh_public_key_path" "$auth_keys_file"
+  chown "$username":"$username" "$auth_keys_file"
+  chmod 600 "$auth_keys_file"
 }
 
 clean_apt() {
@@ -109,6 +140,84 @@ add_sudoer_user() {
   echo "$username:$encrypted_password" | chpasswd -e
 }
 
+#region sysctl/network configurations
+sysctl_bbr_congestion_control() {
+  echo "Configuring BBR congestion control..."
+  echo "tcp_bbr" > /etc/modules-load.d/bbr.conf
+  cat <<EOF >/etc/sysctl.d/99-custom-bbr.conf
+# Enable BBR congestion control
+net.ipv4.tcp_congestion_control = bbr
+net.core.default_qdisc = fq
+EOF
+
+  modprobe tcp_bbr
+  sysctl -p /etc/sysctl.d/99-custom-bbr.conf
+}
+
+sysctl_net_config() {
+  echo "Configuring TCP parameters..."
+  cat <<EOF >/etc/sysctl.d/99-custom-net.conf
+# Disable TCP slow start after idle
+net.ipv4.tcp_slow_start_after_idle = 0
+
+# Increase the maximum number of packets in the network device queue
+net.core.netdev_max_backlog = 4096
+
+# Increase the maximum number of packets in the network device queue
+net.core.netdev_budget = 600
+
+# Increase the maximum time (in microseconds) the CPU can spend processing packets
+net.core.netdev_budget_usecs = 4000
+
+# Increase minimum UDP buffer sizes
+net.ipv4.udp_rmem_min = 16384
+net.ipv4.udp_wmem_min = 16384
+
+# Increase socket buffer sizes
+net.core.rmem_max = 33554432
+net.core.wmem_max = 33554432
+net.ipv4.tcp_rmem = 4096 131072 33554432
+net.ipv4.tcp_wmem = 4096 65536 33554432
+
+# 64KB  = 65536
+# 128KB = 131072
+# 256KB = 262144
+# 512KB = 524288
+# 1MB   = 1048576
+# 2MB   = 2097152
+# 4MB   = 4194304
+# 8MB   = 8388608
+# 16MB  = 16777216
+# 32MB  = 33554432
+# 64MB  = 67108864
+EOF
+  sysctl -p /etc/sysctl.d/99-custom-net.conf
+}
+
+sysctl_config() {
+  echo "Configuring sysctl parameters..."
+  cat <<EOF >/etc/sysctl.d/99-custom-config.conf
+vm.swappiness = 5
+vm.vfs_cache_pressure = 50
+EOF
+  sysctl -p /etc/sysctl.d/99-custom-config.conf
+}
+
+ifupdown_interface_config() {
+  local iface=$1
+  local size=4096
+  echo "Configuring ethtool settings for interface $iface"
+  cat <<EOF >/etc/network/if-up.d/"$iface"-tuning
+#!/bin/sh
+if [ "\$IFACE" = "$iface" ]; then
+  # Increase RX and TX ring buffer sizes
+  /usr/sbin/ethtool -G "$iface" rx $size tx $size 2>/dev/null || true
+fi
+EOF
+  chmod +x /etc/network/if-up.d/"$iface"-tuning
+}
+#endregion
+
 # ----------------------------
 # Optional functions below
 # ----------------------------
@@ -163,10 +272,36 @@ install_realtek_r8152_dkms() {
 }
 
 pin_interface() {
-  local iface=$1
-  local target=$2
-  echo "Pinning interface $iface to $target"
-  ppve-network-interface-pinning generate --interface "$iface" --target "$target"
+  local pair
+  for pair in "$@"; do
+    local mac_target="${pair%%=*}"
+    local target_name="${pair#*=}"
+    if [[ -z "$mac_target" ]] || [[ -z "$target_name" ]]; then
+        return
+    fi
+
+    mac_target=${mac_target//[[:space:].:-]/}
+
+    local iface=""
+    local mac=""
+    for i in /sys/class/net/*; do
+      [[ -L "$i" ]] || continue
+      iface=$(basename "$i")
+      mac=$(ethtool -P "$iface" 2>/dev/null | grep -i 'Permanent Address' | awk '{print $3}')
+      mac=${mac//[[:space:].:-]/}
+      [[ "${mac,,}" == "${mac_target,,}" ]] && break
+    done
+
+    if [ -z "$mac" ] || [ "$mac" != "$mac_target" ]; then
+        echo "Error: no interface found with MAC $mac_target" >&2
+        return 1
+    fi
+
+    echo "Pinning interface $iface (MAC $mac) vers $target_name"
+
+    pve-network-interface-pinning generate --interface "$iface" --target "$target_name"
+  done
+
   systemctl restart networking.service
 }
 

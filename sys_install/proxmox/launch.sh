@@ -69,9 +69,7 @@ echo "All required variables are set. Starting script..."
 # Copy ssh key to Proxmox server for passwordless login:
 ssh root@${PROXMOX_IP} "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys" < ${SSH_PUBLIC_KEY_PATH}
 
-TYPE="scp" # "git" or "scp" or "curl"
-
-case "${TYPE}" in
+case "${LAUNCH_TYPE:curl}" in
   git)
     ssh root@${PROXMOX_IP} "apt update && apt install -y git"
     ssh root@${PROXMOX_IP} "git clone \${GIT_REPO_URL} /root/dotfiles"
@@ -81,9 +79,9 @@ case "${TYPE}" in
     echo "bash /root/dotfiles/sys_install/proxmox/custom_proxmox_config.sh '${PROXMOX_USER}' '${USER_PWD_HASH}'"
     ;;
   scp)
-    scp ${LOCAL_REPO_PATH}/dotfiles/sys_install/proxmox/custom_proxmox_config.sh root@${PROXMOX_IP}:/root/custom_proxmox_config.sh
-    scp ${LOCAL_REPO_PATH}/dotfiles/sys_install/proxmox/proxmox-post-install.sh root@${PROXMOX_IP}:/root/proxmox-post-install.sh
-    scp ${LOCAL_REPO_PATH}/dotfiles/config_files/custom_prompt.sh root@${PROXMOX_IP}:/root/custom_prompt.sh
+    scp ${LOCAL_REPO_PATH}/sys_install/proxmox/custom_proxmox_config.sh root@${PROXMOX_IP}:/root/custom_proxmox_config.sh
+    scp ${LOCAL_REPO_PATH}/sys_install/proxmox/proxmox-post-install.sh root@${PROXMOX_IP}:/root/proxmox-post-install.sh
+    scp ${LOCAL_REPO_PATH}/config_files/custom_prompt.sh root@${PROXMOX_IP}:/root/custom_prompt.sh
 
     echo "Methode $TYPE, run the folowings commands:"
     echo "ssh root@${PROXMOX_IP}"
