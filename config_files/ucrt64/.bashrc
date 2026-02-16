@@ -57,8 +57,10 @@ then
         done
 fi
 
+export PATH="/c/Program Files/OpenSSH:$PATH"
+
 # https://github.com/masahide/OmniSSHAgent
-export SSH_AUTH_SOCK="/c/Users/$USER/OmniSSHCygwin.sock"
+#export SSH_AUTH_SOCK="/c/Users/$USER/OmniSSHCygwin.sock"
 
 # pacman -S ssh-pageant
 # export SSH_AUTH_SOCK="/tmp/.ssh-pageant-$USERNAME"
