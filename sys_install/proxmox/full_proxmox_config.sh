@@ -160,6 +160,8 @@ EOF
 sysctl_net_config() {
   echo "Configuring TCP parameters..."
   cat <<EOF >/etc/sysctl.d/99-custom-net.conf
+net.ipv4.tcp_mtu_probing = 1
+
 # Disable TCP slow start after idle
 net.ipv4.tcp_slow_start_after_idle = 0
 
@@ -210,13 +212,13 @@ ifupdown_interface_config() {
   local iface=$1
   local size=4096
   echo "Configuring ethtool settings for interface $iface"
-  cat <<EOF >/etc/network/if-up.d/"$iface"-tuning
-#!/bin/sh
-if [ "\$IFACE" = "$iface" ]; then
-  # Increase RX and TX ring buffer sizes
-  /usr/sbin/ethtool -G "$iface" rx $size tx $size 2>/dev/null || true
-fi
-EOF
+	cat <<- EOF > /etc/network/if-up.d/"$iface"-tuning
+	#!/bin/sh	
+	if [ "\$IFACE" = "$iface" ]; then
+	  # Increase RX and TX ring buffer sizes
+	  /usr/sbin/ethtool -G "$iface" rx $size tx $size 2>/dev/null || true
+	fi
+	EOF
   chmod +x /etc/network/if-up.d/"$iface"-tuning
 }
 #endregion
@@ -275,12 +277,14 @@ install_realtek_r8152_dkms() {
 }
 
 pin_interface() {
+  echo "Pinning network interfaces based on MAC addresses..."
   local pair
   for pair in "$@"; do
     local mac_target="${pair%%=*}"
     local target_name="${pair#*=}"
     if [[ -z "$mac_target" ]] || [[ -z "$target_name" ]]; then
-        return
+      echo "Invalid MAC=target pair: $pair" >&2
+      return
     fi
 
     mac_target=${mac_target//[[:space:].:-]/}
@@ -302,7 +306,7 @@ pin_interface() {
 
     echo "Pinning interface $iface (MAC $mac) vers $target_name"
 
-    pve-network-interface-pinning generate --interface "$iface" --target "$target_name"
+    echo y | pve-network-interface-pinning generate --interface "$iface" --target "$target_name"
   done
 
   systemctl restart networking.service

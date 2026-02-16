@@ -67,7 +67,8 @@ fi
 echo "All required variables are set. Starting script..."
 
 # Copy ssh key to Proxmox server for passwordless login:
-ssh root@${PROXMOX_IP} "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys" < ${SSH_PUBLIC_KEY_PATH}
+ssh-keygen -R ${PROXMOX_IP} 2>/dev/null
+ssh -o StrictHostKeyChecking=accept-new root@${PROXMOX_IP} "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys" < ${SSH_PUBLIC_KEY_PATH}
 
 case "${LAUNCH_TYPE:curl}" in
   git)
