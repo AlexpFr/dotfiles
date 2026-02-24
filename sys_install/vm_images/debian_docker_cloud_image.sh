@@ -193,6 +193,7 @@ EOF
 #endregion
 
 #region Customize image
+# shellcheck disable=SC2054
 VC_ARGS=(
   -a "$IMG_PATH"
   --timezone "Europe/Paris"
