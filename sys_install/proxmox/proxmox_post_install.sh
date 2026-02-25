@@ -20,7 +20,41 @@ main() {
   # disable_ha
   system_update
   remove_nag
+  gpu_passthrough
   # system_reboot
+}
+
+function gpu_passthrough() {
+  echo "Configuring GPU passthrough (Optional, requires additional setup)"
+  sudo mkdir -p /etc/modprobe.d
+  echo "blacklist amdgpu" | sudo tee /etc/modprobe.d/blacklist-gpu.conf >/dev/null
+  echo "blacklist snd_hda_intel" | sudo tee -a /etc/modprobe.d/blacklist-gpu.conf >/dev/null
+  echo "options vfio-pci ids=1002:1681,1002:1640 disable_vga=1" | sudo tee /etc/modprobe.d/vfio-gpu.conf >/dev/null
+
+  sudo mkdir -p /etc/modules-load.d
+  echo "vfio" | sudo tee /etc/modules-load.d/vfio.conf >/dev/null
+  echo "vfio_iommu_type1" | sudo tee -a /etc/modules-load.d/vfio.conf >/dev/null
+  echo "vfio_pci" | sudo tee -a /etc/modules-load.d/vfio.conf >/dev/null
+
+  sudo mkdir -p /etc/default/grub.d
+  # shellcheck disable=SC2016
+  echo 'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} iommu=pt"' | sudo tee /etc/default/grub.d/iommu.cfg >/dev/null
+
+  sudo update-grub
+  sudo update-initramfs -u -k all
+  echo "Configured GPU passthrough (Reboot required)"
+
+  # apt install libgl1 libegl1
+  # lspci -nn | grep -E "VGA|3D"
+  # lspci -nnk -s e5:00.0
+  # lspci -nnk -s e5:00.1
+  # find /sys/kernel/iommu_groups/ -type l | sort
+  # journalctl -b -1 | grep -i -E "vfio|amd|gpu|qemu|kvm" | tail -n 100
+  # lspci -tv
+  # apt install vendor-reset
+  # qm start 103 && screen -S vm103 qm terminal 103
+  # grep -i "AuthenticAMD" /proc/cpuinfo
+  # lspci -vvv
 }
 
 configure_repositories() {

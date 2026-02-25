@@ -67,7 +67,9 @@ fi
 echo "All required variables are set. Starting script..."
 
 # Copy ssh key to Proxmox server for passwordless login:
+echo "Setting up passwordless SSH access to Proxmox server at ${PROXMOX_IP}..."
 ssh-keygen -R ${PROXMOX_IP} 2>/dev/null
+echo "Copying SSH public key to Proxmox server at ${PROXMOX_IP}..."
 ssh -o StrictHostKeyChecking=accept-new root@${PROXMOX_IP} "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys" < ${SSH_PUBLIC_KEY_PATH}
 
 case "${LAUNCH_TYPE:curl}" in
@@ -82,10 +84,14 @@ case "${LAUNCH_TYPE:curl}" in
     echo "bash /root/dotfiles/sys_install/proxmox/full_proxmox_config.sh '${PROXMOX_USER}' '${USER_PWD_HASH}'"
     ;;
   scp)
+    echo "Copying full_proxmox_config.sh to Proxmox server at ${PROXMOX_IP}..."
     scp ${LOCAL_REPO_PATH}/sys_install/proxmox/full_proxmox_config.sh root@${PROXMOX_IP}:/root/full_proxmox_config.sh
+    echo "Copying proxmox_post_install.sh to Proxmox server at ${PROXMOX_IP}..."
     scp ${LOCAL_REPO_PATH}/sys_install/proxmox/proxmox_post_install.sh root@${PROXMOX_IP}:/root/proxmox_post_install.sh
+    echo "Copying custom_prompt.sh to Proxmox server at ${PROXMOX_IP}..."
     scp ${LOCAL_REPO_PATH}/config_files/custom_prompt.sh root@${PROXMOX_IP}:/root/custom_prompt.sh
-	scp ${LOCAL_REPO_PATH}/sys_install/proxmox/.env root@${PROXMOX_IP}:/root/.env
+    echo "Copying .env to Proxmox server at ${PROXMOX_IP}..."
+    scp ${LOCAL_REPO_PATH}/sys_install/proxmox/.env root@${PROXMOX_IP}:/root/.env
 
     echo "Methode $LAUNCH_TYPE, run the folowings commands:"
     echo "ssh root@${PROXMOX_IP}"

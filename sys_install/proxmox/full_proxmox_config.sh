@@ -21,15 +21,18 @@ main() {
   local username="${1:-}"
   local encrypted_password="${2:-}"
   # If local file exists, use it, else use remote URL
-  if [[ -f "/root/dotfiles/sys_install/proxmox/proxmox-post-install.sh" ]]; then
-    proxmox_post_install_scipt="/root/dotfiles/sys_install/proxmox/proxmox-post-install.sh"
+  if [[ -f "/root/dotfiles/sys_install/proxmox/proxmox_post_install.sh" ]]; then
+    proxmox_post_install_scipt="/root/dotfiles/sys_install/proxmox/proxmox_post_install.sh"
+  elif [[ -f "/root/proxmox_post_install.sh" ]]; then
+    proxmox_post_install_scipt="/root/proxmox_post_install.sh"
   else
-    proxmox_post_install_scipt="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/sys_install/proxmox/proxmox-post-install.sh"
+    proxmox_post_install_scipt="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/sys_install/proxmox/proxmox_post_install.sh"
   fi
 
-  # custom_bash_prompt_file=/root/dotfiles/main/config_files/custom_prompt.sh or https://raw.githubusercontent.com/AlexpFr/dotfiles/main/config_files/custom_prompt.sh
   if [[ -f "/root/dotfiles/config_files/custom_prompt.sh" ]]; then
     custom_bash_prompt_file="/root/dotfiles/config_files/custom_prompt.sh"
+  elif [[ -f "/root/custom_prompt.sh" ]]; then
+	custom_bash_prompt_file="/root/custom_prompt.sh"
   else
     custom_bash_prompt_file="https://raw.githubusercontent.com/AlexpFr/dotfiles/main/config_files/custom_prompt.sh"
   fi
@@ -139,8 +142,8 @@ add_sudoer_user() {
     return
   fi
   echo "Adding custom user $username with sudo privileges"
-  useradd -m -s /bin/bash -G sudo "$username"
-  echo "$username:$encrypted_password" | chpasswd -e
+  useradd -m -s /bin/bash -G sudo "$username" || echo "User $username already exists, skipping creation."
+  echo "$username:$encrypted_password" | chpasswd -e || echo "Failed to set password for user $username"
 }
 
 #region sysctl/network configurations
