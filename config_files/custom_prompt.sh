@@ -14,7 +14,7 @@ alias ..='cd ..'
 alias ...='cd ../..'
 
 alias ls='ls -ahF --color=auto'
-alias ll='ls -alsh'
+alias ll='ls -alsh --color=auto'
 alias path='echo -e ${PATH//:/\\n}' 
 alias cp='cp -i'
 alias mv='mv -i'
